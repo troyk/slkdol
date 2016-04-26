@@ -1,0 +1,33 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>SLKDOL Time Entry</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
+    <script src="/js/vue.min.js"></script>
+    <script src="/js/fetch.min.js"></script>
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-dark navbar-fixed-top bg-inverse">
+      <a class="navbar-brand" href="#">SLK-DOL</a>
+      <button class="btn btn-sm" style="position:absolute; top:13px; right:13px;" onclick="document.getElementById('pageForm').submit();">Save Page</button>
+    </nav>
+
+    <div class="container-fluid">
+      <%= yield %>
+    </div>
+
+  </body>
+</html>
