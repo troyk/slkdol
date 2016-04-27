@@ -13,7 +13,7 @@
       </li>
     </ul>
   </div>
-  <div class="col-xs-9 col-md-10 main">
+  <div class="col-xs-9 col-md-10 main" style="width:100%;">
     <% flash.each do |type, message| %>
       <div class="alert alert-<%= type.to_s %> fade in" id="flashmsgs" style="position:absolute;top:0px;right:0px;z-index:99999; padding:10px; min-height:52px;">
         <div class="text-center"><%= message.html_safe %></div>
@@ -30,36 +30,44 @@
     <% end %>
     <form method="POST" id="pageForm" action="/time/<%= @day %>">
       <input type="hidden" name="_method" value="PUT">
-    <table class="table table-sm">
-      <thead>
-        <th>PayDate</th>
-        <th>In/Out</th>
-        <th>Lunch In/Out</th>
-      </thead>
-      <tbody>
-        <tr>
-          <td>
-            <input name="pay_day" value="<%= @entries.try(:first).try(:pay_day) %>" placeholder="dd/mm/yyyy">
-          </td>
-          <td>
-            <input name="start_time" value="<%= @entries.try(:first).try(:start_time).try(:strftime,"%H:%M") %>" placeholder="in" style="width:49%">
-            <input name="end_time" value="<%= @entries.try(:first).try(:end_time).try(:strftime,"%H:%M") %>" placeholder="out" style="width:49%">
-          </td>
-          <td>
-            <input name="meal_start_time" value="<%= @entries.try(:first).try(:meal_start_time).try(:strftime,"%H:%M") %>" placeholder="in" style="width:49%">
-            <input name="meal_end_time" value="<%= @entries.try(:first).try(:meal_end_time).try(:strftime,"%H:%M") %>" placeholder="out" style="width:49%">
-          </td>
+      <table class="table table-sm">
+        <thead>
+          <th>PayDate</th>
+          <th>In/Out</th>
+          <th>Lunch In/Out</th>
+          <th><label style="font-size:11px; color:red;"><input type="checkbox" name="override">override entire day</input></th>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <input name="pay_day" value="<%= @entries.try(:first).try(:pay_day) %>" placeholder="dd/mm/yyyy">
+            </td>
+            <td>
+              <input name="start_time" value="<%= @entries.try(:first).try(:start_time).try(:strftime,"%H:%M") %>" placeholder="in" style="width:49%">
+              <input name="end_time" value="<%= @entries.try(:first).try(:end_time).try(:strftime,"%H:%M") %>" placeholder="out" style="width:49%">
+            </td>
+            <td>
+              <input name="meal_start_time" value="<%= @entries.try(:first).try(:meal_start_time).try(:strftime,"%H:%M") %>" placeholder="in" style="width:49%">
+              <input name="meal_end_time" value="<%= @entries.try(:first).try(:meal_end_time).try(:strftime,"%H:%M") %>" placeholder="out" style="width:49%">
+            </td>
 
-        </tr>
-      </tbody>
-    </table>
+            <td class="text-right" style="vertical-align:top;">
+              <input class="btn btn-default-outline <%= "btn-primary" unless [@entries.try(:first)].compact.map{|e| e.start_time.present? && e.end_time.present? && e.meal_start_time.present? && e.meal_end_time.present?}.first %>  btn-sm" type="submit" value="Update In/Out"/>
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+    </form>
 
     <table class="table table-striped table-sm">
       <thead>
         <tr>
-          <th>#</th>
-          <th>Name</th>
-          <th>SSN</th>
+          <th><input v-model="idSearch" placeholder="ID" size="4"/></th>
+          <th><input v-model="nameSearch" placeholder="Name" /></th>
+          <th>In/Out</th>
+          <th>Lunch In/Out</th>
+          <th><label style="font-size:11px; color:#777;"><input type="checkbox" v-model="showAll"> showAll</input></th>
           <th>Rate</th>
           <th>Pieces</th>
           <th>Hours</th>
@@ -67,18 +75,42 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="entry in entries">
+        <tr v-for="entry in visibleEntries" track-by="id" data-entry-id="{{entry.id}}">
           <th scope="row">{{entry.employee_id}}</th>
           <td>{{entry.name}}</td>
-          <td>{{entry.ssn}}</td>
+          <td>
+            <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)" placeholder="in" style="width:49%">
+            <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" placeholder="out" style="width:49%">
+          </td>
+          <td>
+            <input v-model="entry.meal_start_time" @keyup.enter="saveEntry(entry)" placeholder="in" style="width:49%">
+            <input v-model="entry.meal_end_time" @keyup.enter="saveEntry(entry)" placeholder="out" style="width:49%">
+          </td>
+          <td>
+            <button v-on:click="saveEntry(entry)" class="btn btn-sm btn-primary-outline">Update</button>
+          </td>
           <td>{{entry.rate}}</td>
           <td>{{entry.pieces}}</td>
-          <td>{{entry.hours}}</td>
-          <td>{{entry.amount}}</td>
+          <td nowrap>
+            <small class="text-no-wrap" style="display:block">
+              pr {{entry.hours}}
+            </small>
+            <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.hours != entry.timecard_hours) }" style="display:block">
+              tc {{entry.timecard_hours}}
+            </small>
+          </td>
+          <td nowrap>
+            <small class="text-no-wrap" style="display:block">
+              pr {{entry.amount}}
+            </small>
+            <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.amount != entry.timecard_amount) }" style="display:block">
+              tc {{entry.timecard_amount}}
+            </small>
+          </td>
         </tr>
       </tbody>
     </table>
-    </form>
+
   </div>
 </div>
 
@@ -88,7 +120,49 @@ var tedit = new Vue({
   data: {
     payDays: <%= @pay_days.to_json.html_safe %>,
     unassignedDays: <%= @unassigned_days.to_json.html_safe %>,
-    entries:  <%= @entries.to_json.html_safe %>
+    entries:  <%= @entries.to_json.html_safe %>,
+    showAll: false,
+    nameSearch: "",
+    idSearch: ""
+  },
+  computed: {
+    visibleEntries: function() {
+      var nameSearch='',idSearch='';
+      if (this.showAll) { return this.entries; }
+      if (this.nameSearch.length>0) { nameSearch = this.nameSearch.trim().toUpperCase(); }
+      if (this.idSearch.length>0) { idSearch = this.idSearch.trim().toUpperCase(); }
+
+      return this.entries.filter(function(e){
+          if (nameSearch.length>0 && e.name.indexOf(nameSearch)>=0) {
+            return e;
+          }
+          if (idSearch.length>0 && e.id.indexOf(idSearch)>=0) {
+            return e;
+          }
+          if (nameSearch.length>0 || idSearch.length>0) { return; }
+          if (e.timecard_hours != e.hours || e.timecard_amount != e.amount) {
+            return e;
+          }
+      });
+    }
+  },
+  methods: {
+    saveEntry: function(e) {
+      fetch('/time/'+e.id, {
+        credentials: 'same-origin',
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(e)
+      }).then(function(r){
+        return r.json();
+      }).then(function(json) {
+        Object.assign(e, json);
+      });
+    }
   }
-})
+
+});
 </script>
