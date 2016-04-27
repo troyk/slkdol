@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160427102051) do
+ActiveRecord::Schema.define(version: 20160427155828) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -39,7 +39,7 @@ ActiveRecord::Schema.define(version: 20160427102051) do
   add_index "agpay", ["employee_id", "day"], name: "agpay_key", using: :btree
 
   create_table "time_entries", force: :cascade do |t|
-    t.citext  "employee_id",                             null: false
+    t.citext  "employee_id",                                             null: false
     t.date    "pay_day"
     t.date    "day"
     t.citext  "ssn"
@@ -56,6 +56,8 @@ ActiveRecord::Schema.define(version: 20160427102051) do
     t.decimal "timecard_pieces", precision: 8, scale: 2
     t.decimal "timecard_hours",  precision: 8, scale: 2
     t.decimal "timecard_amount", precision: 8, scale: 2
+    t.boolean "balanced",                                default: false, null: false
+    t.citext  "status"
   end
 
   add_index "time_entries", ["day"], name: "time_entries_day_key", using: :btree

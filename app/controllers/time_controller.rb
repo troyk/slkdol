@@ -33,7 +33,7 @@ class TimeController < ApplicationController
       return
     end
     @te.update!(params.permit(
-      :start_time,:end_time,:meal_start_time,:meal_end_time
+      :start_time,:end_time,:meal_start_time,:meal_end_time,:audited
     ))
     render json: @te.reload
   end

@@ -72,6 +72,7 @@
           <th>Pieces</th>
           <th>Hours</th>
           <th>Amount</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -107,6 +108,8 @@
               tc {{entry.timecard_amount}}
             </small>
           </td>
+          <td><input type="checkbox" v-model="entry.audited" v-bind:true-value="true"
+  v-bind:false-value="false" v-on:click="saveEntryDelay(entry)"></td>
         </tr>
       </tbody>
     </table>
@@ -140,6 +143,7 @@ var tedit = new Vue({
             return e;
           }
           if (nameSearch.length>0 || idSearch.length>0) { return; }
+          if (e.audited === true) { return; }
           if (e.timecard_hours != e.hours || e.timecard_amount != e.amount) {
             return e;
           }
@@ -161,6 +165,13 @@ var tedit = new Vue({
       }).then(function(json) {
         Object.assign(e, json);
       });
+    },
+    saveEntryDelay: function(e) {
+      var self = this;
+      window.setTimeout(function(){
+        self.saveEntry(e);
+      },5);
+      return true;
     }
   }
 
