@@ -47,6 +47,8 @@ class TimeController < ApplicationController
       next unless params.key?(name)
       if params[name].strip.blank?
         updates[name] = nil
+      else
+        updates[name] = params[name]
       end
     end
     if updates.any?
