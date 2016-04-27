@@ -44,7 +44,7 @@ class TimeController < ApplicationController
         ::TimeEntry.where(day: params[:id]).update_all(updates)
         flash.now[:success] = "day updated"
       rescue StandardError => e
-        flash.now[:error] = e.message
+        flash.now[:alert] = e.message
       end
     end
     show
