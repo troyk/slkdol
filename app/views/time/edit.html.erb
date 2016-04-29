@@ -1,118 +1,101 @@
 <div class="row" id="tedit">
   <div class="col-xs-3 col-md-2 sidebar" style="padding-top:5px;">
     <ul class="nav nav-sidebar">
-      <li style="font-size:11px; text-transform:uppercase; font-weight:bold; color:#777; padding-left:5px;">pay dates</li>
-      <li v-for="day in payDays">
-        <a href="/time/paydate/{{ day.pay_day }}" style="font-size:11px;">{{ day.pay_day }}</a>
-      </li>
-    </ul>
-    <ul class="nav nav-sidebar">
-      <li style="font-size:11px; text-transform:uppercase; font-weight:bold; color:#777; padding-left:5px;">unassigned</li>
-      <li v-for="day in unassignedDays">
-        <a href="/time/{{ day.day }}" style="font-size:11px;">{{ day.day }}</a>
+      <li style="font-size:11px; text-transform:uppercase; font-weight:bold; color:#777; padding-left:5px;">unaudited days</li>
+      <li v-for="day in unauditedDays" style="font-size:11px;">
+        <% if @start_day.present? && @end_day.blank? %>
+          <a href="/time/<%= @start_day %>?end_day={{ day.day }}">{{ day.day }}</a> <small>{{day.count}}</small>
+        <% else %>
+          <a href="/time/{{ day.day }}">{{ day.day }}</a> <small>{{day.count}}</small>
+        <% end %>
       </li>
     </ul>
   </div>
   <div class="col-xs-9 col-md-10 main" style="width:100%;">
-    <% flash.each do |type, message| %>
-      <div class="alert alert-<%= type.to_s %> fade in" id="flashmsgs" style="position:absolute;top:0px;right:0px;z-index:99999; padding:10px; min-height:52px;">
-        <div class="text-center"><%= message.html_safe %></div>
-      </div>
-    <% end %>
+    <div v-if="alertMsg" class="alert alert-{{alertMsg.type}} fade in" id="flashmsgs" style="position:absolute;top:0px;right:0px;z-index:99999; padding:10px; min-height:52px;">
+      <div class="text-center">{{alertMsg.msg}}</div>
+    </div>
 
-
-    <% if @days_in_payday && @days_in_payday.any? %>
-      <div style="margin:15px 0px;">
-      <% @days_in_payday.each do |dt| %>
-        <a href="/time/<%= dt %>" class="btn <%= dt == @day ? "btn-primary" : "btn-primary-outline"%> btn-sm"><%= dt %></a>
-      <% end %>
-      </div>
-    <% end %>
-    <form method="POST" id="pageForm" action="/time/<%= @day %>">
-      <input type="hidden" name="_method" value="PUT">
+    <form method="POST" action="/time">
       <table class="table table-sm">
         <thead>
-          <th>PayDate</th>
-          <th>In/Out</th>
-          <th>Lunch In/Out</th>
-          <th><label style="font-size:11px; color:red;"><input type="checkbox" name="override">override entire day</input></th>
+          <th class="payperiodgrp">PayDate</th>
+          <th class="payperiodgrp">Start Date</th>
+          <th class="payperiodgrp">End Date</th>
+          <th class="payperiodgrp">&nbsp;</th>
+          <!--
+          <th>ID/Name Filter</th>
+          <th></th>
+        -->
         </thead>
         <tbody>
           <tr>
-            <td>
-              <input name="pay_day" value="<%= @entries.try(:first).try(:pay_day) %>" placeholder="dd/mm/yyyy">
-            </td>
-            <td>
-              <input name="start_time" value="<%= @entries.try(:first).try(:start_time).try(:strftime,"%H:%M") %>" placeholder="in" style="width:49%">
-              <input name="end_time" value="<%= @entries.try(:first).try(:end_time).try(:strftime,"%H:%M") %>" placeholder="out" style="width:49%">
-            </td>
-            <td>
-              <input name="meal_start_time" value="<%= @entries.try(:first).try(:meal_start_time).try(:strftime,"%H:%M") %>" placeholder="in" style="width:49%">
-              <input name="meal_end_time" value="<%= @entries.try(:first).try(:meal_end_time).try(:strftime,"%H:%M") %>" placeholder="out" style="width:49%">
-            </td>
-
-            <td class="text-right" style="vertical-align:top;">
-              <input class="btn btn-default-outline <%= "btn-primary" unless [@entries.try(:first)].compact.map{|e| e.start_time.present? && e.end_time.present? && e.meal_start_time.present? && e.meal_end_time.present?}.first %>  btn-sm" type="submit" value="Update In/Out"/>
-            </td>
-
+            <td class="payperiodgrp"><input name="pay_day" value="<%= @pay_day %>" placeholder="dd/mm/yyyy"></td>
+            <td class="payperiodgrp"><input name="start_day" value="<%= @start_day %>" placeholder="dd/mm/yyyy"></td>
+            <td class="payperiodgrp"><input name="end_day" value="<%= @end_day %>" placeholder="dd/mm/yyyy"></td>
+            <td class="payperiodgrp"><input type="submit" class="btn btn-sm btn-primary" value="Set Dates"></input></td>
+            <!--
+            <td><input v-model="nameSearch" placeholder="Name" /></td>
+            <td><label style="font-size:11px; color:#777;"><input type="checkbox" v-model="showAll"> showAll</input></td>
+            -->
           </tr>
         </tbody>
       </table>
     </form>
 
-    <table class="table table-striped table-sm">
-      <thead>
-        <tr>
-          <th><input v-model="idSearch" placeholder="ID" size="4"/></th>
-          <th><input v-model="nameSearch" placeholder="Name" /></th>
-          <th>In/Out</th>
-          <th>Lunch In/Out</th>
-          <th><label style="font-size:11px; color:#777;"><input type="checkbox" v-model="showAll"> showAll</input></th>
-          <th>Rate</th>
-          <th>Pieces</th>
-          <th>Hours</th>
-          <th>Amount</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="entry in visibleEntries" track-by="id" data-entry-id="{{entry.id}}">
-          <th scope="row">{{entry.employee_id}}</th>
-          <td>{{entry.name}}</td>
-          <td>
-            <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)" placeholder="in" style="width:49%">
-            <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" placeholder="out" style="width:49%">
-          </td>
-          <td>
-            <input v-model="entry.meal_start_time" @keyup.enter="saveEntry(entry)" placeholder="in" style="width:49%">
-            <input v-model="entry.meal_end_time" @keyup.enter="saveEntry(entry)" placeholder="out" style="width:49%">
-          </td>
-          <td>
-            <button v-on:click="saveEntry(entry)" class="btn btn-sm btn-primary-outline">Update</button>
-          </td>
-          <td>{{entry.rate}}</td>
-          <td>{{entry.pieces}}</td>
-          <td nowrap>
-            <small class="text-no-wrap" style="display:block">
-              pr {{entry.hours}}
-            </small>
-            <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.hours != entry.timecard_hours) }" style="display:block">
-              tc {{entry.timecard_hours}}
-            </small>
-          </td>
-          <td nowrap>
-            <small class="text-no-wrap" style="display:block">
-              pr {{entry.amount}}
-            </small>
-            <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.amount != entry.timecard_amount) }" style="display:block">
-              tc {{entry.timecard_amount}}
-            </small>
-          </td>
-          <td><input type="checkbox" v-model="entry.audited" v-bind:true-value="true"
-  v-bind:false-value="false" v-on:click="saveEntryDelay(entry)"></td>
-        </tr>
-      </tbody>
-    </table>
+    <template v-for="employee in employees" track-by="id" data-entry-id="{{employee.id}}">
+      <div style="font-size:12px; font-weight:bold;"><span style="color:#777">{{employee.employee_id}}</span> {{employee.name}}</div>
+      <table class="table table-striped table-sm">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>In/Out</th>
+            <th>Lunch In/Out</th>
+            <th></th>
+            <th>Rate</th>
+            <th>Pieces</th>
+            <th>Hours</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="entry in employee.entries" track-by="id" data-entry-id="{{entry.id}}">
+            <td>{{entry.day}}</td>
+            <td>
+              <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)" placeholder="in" style="width:49%">
+              <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" placeholder="out" style="width:49%">
+            </td>
+            <td>
+              <input v-model="entry.meal_start_time" @keyup.enter="saveEntry(entry)" placeholder="in" style="width:49%">
+              <input v-model="entry.meal_end_time" @keyup.enter="saveEntry(entry)" placeholder="out" style="width:49%">
+            </td>
+            <td>
+              <button v-on:click="saveEntry(entry)" class="btn btn-sm btn-primary-outline">Update</button>
+            </td>
+            <td>{{entry.rate}}</td>
+            <td>{{entry.pieces}}</td>
+            <td nowrap>
+              <small class="text-no-wrap" style="display:block">
+                pr {{entry.hours}}
+              </small>
+              <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.hours != entry.timecard_hours) }" style="display:block">
+                tc {{entry.timecard_hours}}
+              </small>
+            </td>
+            <td nowrap>
+              <small class="text-no-wrap" style="display:block">
+                pr {{entry.amount}}
+              </small>
+              <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.amount != entry.timecard_amount) }" style="display:block">
+                tc {{entry.timecard_amount}}
+              </small>
+            </td>
+            <td><input type="checkbox" v-model="entry.audited" v-bind:true-value="true"
+    v-bind:false-value="false" v-on:click="saveEntryDelay(entry)"></td>
+          </tr>
+        </tbody>
+      </table>
+    </template>
 
   </div>
 </div>
@@ -121,36 +104,35 @@
 var tedit = new Vue({
   el: '#tedit',
   data: {
-    payDays: <%= @pay_days.to_json.html_safe %>,
-    unassignedDays: <%= @unassigned_days.to_json.html_safe %>,
-    entries:  <%= @entries.to_json.html_safe %>,
+    unauditedDays: <%= @unaudited_days.to_json.html_safe %>,
+    employees:  <%= @employees.html_safe %>,
     showAll: false,
     nameSearch: "",
     idSearch: ""
   },
   computed: {
-    visibleEntries: function() {
-      var nameSearch='',idSearch='';
-      if (this.showAll) { return this.entries; }
-      if (this.nameSearch.length>0) { nameSearch = this.nameSearch.trim().toUpperCase(); }
-      if (this.idSearch.length>0) { idSearch = this.idSearch.trim().toUpperCase(); }
-
-      return this.entries.filter(function(e){
-          if (nameSearch.length>0 && e.name.indexOf(nameSearch)>=0) {
-            return e;
-          }
-          if (idSearch.length>0 && e.id.indexOf(idSearch)>=0) {
-            return e;
-          }
-          if (nameSearch.length>0 || idSearch.length>0) { return; }
-          if (e.audited === true) { return; }
-          if (e.timecard_hours != e.hours || e.timecard_amount != e.amount) {
-            return e;
-          }
-      });
-    }
   },
   methods: {
+    copyTimes: function(src) {
+      var copyFields = ['start_time', 'end_time', 'meal_start_time', 'meal_end_time'],
+          vm = this;
+      vm.employees.forEach(function(employee){
+        employee.entries.forEach(function(entry){
+          if (entry.audited === true) { return; }
+          if (entry.day != src.day) { return; }
+          if (entry.hours <= 5) { return; }
+          var updated = false;
+          copyFields.forEach(function(field){
+            if (entry[field]!=null && entry[field].indexOf(':')>0) { return; }
+            if (src[field]!=null && src[field].indexOf(':')>0) {
+              updated = true;
+              entry[field] = src[field]
+            }
+          });
+          if (updated === true) { vm.saveEntry(entry); }
+        });
+      });
+    },
     saveEntry: function(e) {
       fetch('/time/'+e.id, {
         credentials: 'same-origin',
@@ -165,6 +147,7 @@ var tedit = new Vue({
       }).then(function(json) {
         Object.assign(e, json);
       });
+      this.copyTimes(e);
     },
     saveEntryDelay: function(e) {
       var self = this;
