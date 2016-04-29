@@ -4,18 +4,6 @@ class TimeController < ApplicationController
   end
 
   def show
-    # if params[:paydate]
-    #   @days_in_payday = ::TimeEntry.where(pay_day: params[:paydate]).order("day").group("day").pluck(:day)
-    #   params[:id] = ::TimeEntry.where(pay_day: params[:paydate]).order("day").limit(1).pluck(:day).first
-    # end
-    # @entries = ::TimeEntry.where(day: params[:id]).order("name").to_a
-    # if @entries.any?
-    #   @day = @entries.first.day
-    #   @pay_day = @entries.first.pay_day
-    # end
-    # if !@days_in_payday && @pay_day
-    #   @days_in_payday = ::TimeEntry.where(pay_day: @pay_day).order("day").group("day").pluck(:day)
-    # end
     edit
   end
 
@@ -31,30 +19,17 @@ class TimeController < ApplicationController
       end
     end
     @employees ||= "[]"
-
-
-
-    #   @pay_period = ::PayPeriod.find(params[:id])
-    #   @dirty_names, @names = ::TimeEntry.connection.select_all("select id,name,bool_and(audited) as audited from time_entries where pay_period='#{@pay_period.id}' group by id,name;").partition{|t|
-    #     t["audited"] != "t"
-    #   }
-    # else
-    #   @pay_period = ::PayPeriod.new
-    #   @dirty_names, @names = [], []
-    # end
-    #
-    #
-    # @entries ||= []
-    # @dirty_pay_periods,@pay_periods = ::PayPeriod.connection.select_all("select id,(select count(*) from time_entries te where te.pay_period=pp.id and te.audited=false) as dirty from pay_periods pp").partition{|pp|
-    #     pp["dirty"].to_i > 0
-    # }
-    # @pay_days = ::TimeEntry.connection.select_all("select pay_day from time_entries group by pay_day order by pay_day")
-    # @unassigned_days = ::TimeEntry.connection.select_all("select day from time_entries where pay_day is null group by day order by day")
     render action: :edit
   end
 
   def update
     @te = ::TimeEntry.where(id: params[:id]).take
+    if @te.nil? && params[:in_agpay].to_s.downcase[0] == "f"
+      @te = ::TimeEntry.new(params.permit(
+        :employee_id, :pay_day, :day, :ssn, :name, :rate, :pieces, :hours, :amount
+      ))
+      @te.in_agpay = false
+    end
     @te.update!(params.permit(
       :start_time,:end_time,:meal_start_time,:meal_end_time,:audited
     ))
@@ -71,35 +46,10 @@ class TimeController < ApplicationController
     redirect_to "/time/#{params[:start_day]}"
   end
 
-  def update_day
-    updates = {}
-    if params.key?(:pay_day)
-      updates[:pay_day] = params[:pay_day].strip.blank?? nil : params[:pay_day]
-    end
-    [:start_time, :end_time,:meal_start_time, :meal_end_time].each do |name|
-      next unless params.key?(name)
-      if params[name].strip.blank?
-        updates[name] = nil
-      else
-        updates[name] = params[name]
-      end
-    end
-    if updates.any?
-      begin
-        q = ::TimeEntry.where(day: params[:id])
-        unless params.key?(:override)
-          updates.each do |k,v|
-            q = q.where("#{k} IS NOT NULL")
-          end
-        end
-        q.update_all(updates)
-        flash.now[:success] = "day updated overide(#{params.key?(:override)})"
-      rescue StandardError => e
-        flash.now[:alert] = e.message
-      end
-    end
-    show
+  def destroy
+    @te = ::TimeEntry.where(id: params[:id], in_agpay: false).take
+    @te.destroy! unless @te.nil?
+    render json: @te
   end
-
 
 end

@@ -1,5 +1,7 @@
 class TimeEntry < ActiveRecord::Base
 
+  validates :day, :employee_id, :name, presence: true
+
   # use custom serialization
   def serializable_hash(options = nil)
     h = super(options)
