@@ -33,6 +33,11 @@ class TimeController < ApplicationController
     @te.update!(params.permit(
       :start_time,:end_time,:meal_start_time,:meal_end_time,:audited
     ))
+    if @te.in_agpay == false
+      @te.update!(params.permit(
+        :day, :rate, :pieces, :hours, :amount
+      ))
+    end
     render json: @te.reload
   end
 
