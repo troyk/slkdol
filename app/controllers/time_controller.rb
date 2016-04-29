@@ -65,7 +65,7 @@ class TimeController < ApplicationController
   # paydate for a range of dates
   def create
     if params[:pay_day] && params[:start_day] && params[:end_day]
-      #::TimeEntry.where("day<? OR day>?",params[:start_day],params[:end_day]).update_all(pay_day: nil)
+      ::TimeEntry.where(pay_day: params[:pay_day]).update_all(pay_day: nil)
       ::TimeEntry.where("day>=? AND day<=?",params[:start_day],params[:end_day]).update_all(pay_day: params[:pay_day])
     end
     redirect_to "/time/#{params[:start_day]}"
