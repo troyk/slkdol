@@ -26,7 +26,7 @@
           <!--
           <th>ID/Name Filter</th>
           <th></th>
-        -->
+          -->
         </thead>
         <tbody>
           <tr>
@@ -35,7 +35,10 @@
             <td class="payperiodgrp"><input name="end_day" value="<%= @end_day %>" placeholder="dd/mm/yyyy"></td>
             <td class="payperiodgrp"><input type="submit" class="btn btn-sm btn-primary" value="Set Dates"></input></td>
             <!--
-            <td><input v-model="nameSearch" placeholder="Name" /></td>
+            <td>
+              <input v-model="idSearch" placeholder="ID" />
+              <input v-model="nameSearch" placeholder="Name" />
+            </td>
             <td><label style="font-size:11px; color:#777;"><input type="checkbox" v-model="showAll"> showAll</input></td>
             -->
           </tr>
@@ -68,12 +71,12 @@
               <input v-else v-model="entry.day" @keyup.enter="saveEntry(entry)" placeholder="yyyy-mm-dd">
             </td>
             <td>
-              <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)" placeholder="in" style="width:49%">
-              <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" placeholder="out" style="width:49%">
+              <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)"  @change="copyTimes(employee,$index)" placeholder="in" style="width:49%">
+              <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
             </td>
             <td>
-              <input v-model="entry.meal_start_time" @keyup.enter="saveEntry(entry)" placeholder="in" style="width:49%">
-              <input v-model="entry.meal_end_time" @keyup.enter="saveEntry(entry)" placeholder="out" style="width:49%">
+              <input v-model="entry.meal_start_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="in" style="width:49%">
+              <input v-model="entry.meal_end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
             </td>
             <td>
               <button v-on:click="saveEntry(entry)" class="btn btn-sm btn-primary-outline">Update</button>
@@ -132,24 +135,23 @@ var tedit = new Vue({
   computed: {
   },
   methods: {
-    copyTimes: function(src) {
+    copyTimes: function(employee, $index) {
       var copyFields = ['start_time', 'end_time', 'meal_start_time', 'meal_end_time'],
+          src = employee.entries[$index],
           vm = this;
-      vm.employees.forEach(function(employee){
-        employee.entries.forEach(function(entry){
-          if (entry.audited === true) { return; }
-          if (entry.day != src.day) { return; }
-          if (entry.hours <= 5) { return; }
-          var updated = false;
-          copyFields.forEach(function(field){
-            if (entry[field]!=null && entry[field].indexOf(':')>0) { return; }
-            if (src[field]!=null && src[field].indexOf(':')>0) {
-              updated = true;
-              entry[field] = src[field]
-            }
-          });
-          if (updated === true) { vm.saveEntry(entry); }
+      employee.entries.forEach(function(entry, index){
+        if (entry.audited === true) { return; }
+        if (index <= $index) { return; }
+        if (entry.hours <= 5) { return; }
+        var updated = false;
+        copyFields.forEach(function(field){
+          if (entry[field]!=null && entry[field].indexOf(':')>0) { return; }
+          if (src[field]!=null && src[field].indexOf(':')>0) {
+            updated = true;
+            entry[field] = src[field]
+          }
         });
+        if (updated === true) { vm.saveEntry(entry); }
       });
     },
     saveEntry: function(e) {
@@ -166,7 +168,6 @@ var tedit = new Vue({
       }).then(function(json) {
         Object.assign(e, json);
       });
-      this.copyTimes(e);
     },
     saveEntryDelay: function(e) {
       var self = this;
