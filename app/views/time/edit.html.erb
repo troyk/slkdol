@@ -55,8 +55,14 @@
         <thead>
           <tr>
             <th>Date</th>
-            <th>In/Out</th>
-            <th>Lunch In/Out</th>
+            <th>
+              <a href="#" @click.prevent="clearTime(employee,'start_time')" style="color:black; font-weight:bold;">In</a>
+              /
+              <a href="#" @click.prevent="clearTime(employee,'end_time')" style="color:black; font-weight:bold;">Out</a></th>
+            <th>Lunch
+              <a href="#" @click.prevent="clearTime(employee,'meal_start_time')" style="color:black; font-weight:bold;">In</a>
+              /
+              <a href="#" @click.prevent="clearTime(employee,'meal_end_time')" style="color:black; font-weight:bold;">Out</a></th>
             <th></th>
             <th>Rate</th>
             <th>Pieces</th>
@@ -152,6 +158,11 @@ var tedit = new Vue({
           }
         });
         if (updated === true) { vm.saveEntry(entry); }
+      });
+    },
+    clearTime: function(employee, col) {
+      employee.entries.forEach(function(entry){
+        entry[col] = '';
       });
     },
     saveEntry: function(e) {
