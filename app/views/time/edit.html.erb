@@ -26,7 +26,7 @@
           <!--
           <th>ID/Name Filter</th>
           <th></th>
-          -->
+        -->
         </thead>
         <tbody>
           <tr>
@@ -36,11 +36,11 @@
             <td class="payperiodgrp"><input type="submit" class="btn btn-sm btn-primary" value="Set Dates"></input></td>
             <!--
             <td>
-              <input v-model="idSearch" placeholder="ID" />
+              <input v-model="idSearch" placeholder="ID" debounce="800"/>
               <input v-model="nameSearch" placeholder="Name" />
             </td>
-            <td><label style="font-size:11px; color:#777;"><input type="checkbox" v-model="showAll"> showAll</input></td>
             -->
+            <td><label style="font-size:11px; color:#777;"><input type="checkbox" v-model="showAll"> showAll</input></td>
           </tr>
         </tbody>
       </table>
@@ -77,7 +77,7 @@
               <input v-else v-model="entry.day" @keyup.enter="saveEntry(entry)" placeholder="yyyy-mm-dd">
             </td>
             <td>
-              <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)"  @change="copyTimes(employee,$index)" placeholder="in" style="width:49%">
+              <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)"  @change="copyTimes(employee,$index)" @focus="focusEntry(employee,$index)" placeholder="in" style="width:49%">
               <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
             </td>
             <td>
@@ -138,8 +138,31 @@ var tedit = new Vue({
     nameSearch: "",
     idSearch: ""
   },
-  computed: {
-  },
+  // computed: {
+  //   filteredEmployees: function() {
+  //     var nameSearch='',idSearch='';
+  //     if (this.showAll) { return this.employees; }
+  //     if (this.nameSearch && this.nameSearch.length>0) { nameSearch = this.nameSearch.trim().toUpperCase(); }
+  //     if (this.idSearch && this.idSearch.length>0) { idSearch = this.idSearch.trim().toUpperCase(); }
+  //     nameSearch = nameSearch.length>0 ? nameSearch : false;
+  //     idSearch = idSearch.length>0 ? idSearch : false;
+  //     console.log(nameSearch, idSearch);
+  //     wtf = this.employees.filter(function(e){
+  //       if (nameSearch && e.name.indexOf(nameSearch)>=0) {
+  //         return e;
+  //       }
+  //       if (idSearch && e.employee_id.indexOf(idSearch)>=0) {
+  //         return e;
+  //       }
+  //       if (nameSearch || idSearch) { return; }
+  //       if (e.audited === true) { return; }
+  //       return e;
+  //     });
+  //     console.log(wtf);
+  //     return wtf;
+  //
+  //   }
+  // },
   methods: {
     copyTimes: function(employee, $index) {
       var copyFields = ['start_time', 'end_time', 'meal_start_time', 'meal_end_time'],
@@ -160,12 +183,24 @@ var tedit = new Vue({
         if (updated === true) { vm.saveEntry(entry); }
       });
     },
+    focusEntry: function(employee, $index) {
+      if (!window.lastEmployee) { return; }
+      var copyFields = ['start_time', 'end_time', 'meal_start_time', 'meal_end_time'],
+          src = window.lastEmployee,
+          dest = employee.entries[$index];
+      copyFields.forEach(function(field){
+        if ((!dest[field] || dest[field].length<1) && (src[field] && src[field].length>0)) {
+          dest[field] = src[field];
+        }
+      });
+    },
     clearTime: function(employee, col) {
       employee.entries.forEach(function(entry){
         entry[col] = '';
       });
     },
     saveEntry: function(e) {
+      window.lastEmployee = e;
       fetch('/time/'+e.id, {
         credentials: 'same-origin',
         method: 'PUT',
