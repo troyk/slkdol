@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160429192636) do
+ActiveRecord::Schema.define(version: 20160502180640) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -79,6 +79,7 @@ ActiveRecord::Schema.define(version: 20160429192636) do
     t.time    "meal_end_time"
     t.boolean "audited",                                 default: false, null: false
     t.boolean "in_agpay",                                default: true,  null: false
+    t.integer "weeknum"
   end
 
   add_index "time_entries", ["day"], name: "time_entries_day_key", using: :btree

@@ -8,15 +8,9 @@ class TimeController < ApplicationController
   end
 
   def edit
-    @unaudited_days = ::TimeEntry.connection.select_all("select day,count(*) from time_entries where audited=false group by day order by day")
+    @weeks = ::TimeEntry.connection.select_all("select weeknum,count(*) FILTER (WHERE audited=false) from time_entries group by weeknum order by weeknum;")
     if params[:id]
-      @pay_day = ::TimeEntry.where(day: params[:id]).where("pay_day IS NOT NULL").limit(1).pluck(:pay_day).first
-      if @pay_day
-        @start_day, @end_day = *::TimeEntry.connection.select_rows("select min(day),max(day) from time_entries where pay_day='#{@pay_day}'").first
-        @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id,max(name) as name,bool_and(audited) as audited,array_agg(time_entries order by day) as entries from time_entries where pay_day='#{@pay_day}' group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
-      else
-        @start_day, @end_day = params[:id], params[:end_day]
-      end
+      @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id,max(name) as name,bool_and(audited) as audited,array_agg(time_entries order by day) as entries from time_entries where weeknum=#{params[:id].to_i} group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
     end
     @employees ||= "[]"
     render action: :edit

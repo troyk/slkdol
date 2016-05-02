@@ -1,13 +1,11 @@
 <div class="row" id="tedit">
   <div class="col-xs-3 col-md-2 sidebar" style="padding-top:5px;">
     <ul class="nav nav-sidebar">
-      <li style="font-size:11px; text-transform:uppercase; font-weight:bold; color:#777; padding-left:5px;">unaudited days</li>
-      <li v-for="day in unauditedDays" style="font-size:11px;">
-        <% if @start_day.present? && @end_day.blank? %>
-          <a href="/time/<%= @start_day %>?end_day={{ day.day }}">{{ day.day }}</a> <small>{{day.count}}</small>
-        <% else %>
-          <a href="/time/{{ day.day }}">{{ day.day }}</a> <small>{{day.count}}</small>
-        <% end %>
+      <li style="font-size:11px; text-transform:uppercase; font-weight:bold; color:#777; padding-left:5px;">Week</li>
+      <li v-for="week in weeks" style="font-size:11px;">
+        <a href="/time/{{ week.weeknum  }}" style="display:block; position:relative;">{{ week.weeknum }}
+          <small style="position:absolute; top:0px; right:5px; color:#666;">{{week.count}}</small>
+        </a>
       </li>
     </ul>
   </div>
@@ -16,36 +14,7 @@
       <div class="text-center">{{alertMsg.msg}}</div>
     </div>
 
-    <form method="POST" action="/time">
-      <table class="table table-sm">
-        <thead>
-          <th class="payperiodgrp">PayDate</th>
-          <th class="payperiodgrp">Start Date</th>
-          <th class="payperiodgrp">End Date</th>
-          <th class="payperiodgrp">&nbsp;</th>
-          <!--
-          <th>ID/Name Filter</th>
-          <th></th>
-        -->
-        </thead>
-        <tbody>
-          <tr>
-            <td class="payperiodgrp"><input name="pay_day" value="<%= @pay_day %>" placeholder="dd/mm/yyyy"></td>
-            <td class="payperiodgrp"><input name="start_day" value="<%= @start_day %>" placeholder="dd/mm/yyyy"></td>
-            <td class="payperiodgrp"><input name="end_day" value="<%= @end_day %>" placeholder="dd/mm/yyyy"></td>
-            <td class="payperiodgrp"><input type="submit" class="btn btn-sm btn-primary" value="Set Dates"></input></td>
-            <!--
-            <td>
-              <input v-model="idSearch" placeholder="ID" debounce="800"/>
-              <input v-model="nameSearch" placeholder="Name" />
-            </td>
-            -->
-            <td><label style="font-size:11px; color:#777;"><input type="checkbox" v-model="showAll"> showAll</input></td>
-          </tr>
-        </tbody>
-      </table>
-    </form>
-
+    <h3>Week <%=params[:id]%></h3>
     <template v-for="employee in employees" track-by="id" data-entry-id="{{employee.id}}">
       <div style="font-size:12px; font-weight:bold;">
         <span style="color:#777">{{employee.employee_id}}</span> {{employee.name}}
@@ -132,7 +101,7 @@
 var tedit = new Vue({
   el: '#tedit',
   data: {
-    unauditedDays: <%= @unaudited_days.to_json.html_safe %>,
+    weeks: <%= @weeks.to_json.html_safe %>,
     employees:  <%= @employees.html_safe %>,
     showAll: false,
     nameSearch: "",
