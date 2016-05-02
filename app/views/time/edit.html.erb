@@ -14,7 +14,13 @@
       <div class="text-center">{{alertMsg.msg}}</div>
     </div>
 
-    <h3>Week <%=params[:id]%></h3>
+    <h1 style="font-size:22px; padding:10px;">
+      <% if @current_week %>
+      <% @current_week.each do |k,v| %>
+        <span style="margin-right:10px;"><span style="color:#666"><%= k %>: </span><%= v %></span>
+      <% end %>
+      <% end %>
+    </h1>
     <template v-for="employee in employees" track-by="id" data-entry-id="{{employee.id}}">
       <div style="font-size:12px; font-weight:bold;">
         <span style="color:#777">{{employee.employee_id}}</span> {{employee.name}}
