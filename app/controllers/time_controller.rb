@@ -10,7 +10,11 @@ class TimeController < ApplicationController
   def edit
     @weeks = ::TimeEntry.connection.select_all("select weeknum,min(day) as start_day,max(day) as end_day,count(*) FILTER (WHERE audited=false) from time_entries where day <'2014-12-29' group by weeknum order by weeknum;")
     if params[:id] && params[:id].to_i > 0
-      @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id,max(name) as name,bool_and(audited) as audited,array_agg(time_entries order by day) as entries from time_entries where weeknum=#{params[:id].to_i} and day <'2014-12-29' group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
+      if params.key?(:all)
+        @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id,max(name) as name,bool_and(audited) as audited,array_agg(time_entries order by day) as entries from time_entries where weeknum=#{params[:id].to_i} and day <'2014-12-29' group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
+      else
+        @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id,max(name) as name,bool_and(audited) as audited,ARRAY(select subq from time_entries subq where subq.weeknum=#{params[:id].to_i} and subq.employee_id = time_entries.employee_id order by subq.day) as entries from time_entries where weeknum=#{params[:id].to_i} and day <'2014-12-29' and audited=false group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
+      end
       @current_week = @weeks[params[:id].to_i-1]
     end
     @employees ||= "[]"

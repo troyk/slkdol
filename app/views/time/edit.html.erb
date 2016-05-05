@@ -16,9 +16,14 @@
 
     <h1 style="font-size:22px; padding:10px;">
       <% if @current_week %>
-      <% @current_week.each do |k,v| %>
-        <span style="margin-right:10px;"><span style="color:#666"><%= k %>: </span><%= v %></span>
-      <% end %>
+        <% @current_week.each do |k,v| %>
+          <span style="margin-right:10px;"><span style="color:#666"><%= k %>: </span><%= v %></span>
+        <% end %>
+        <% if params.key?(:all) %>
+          <a href="/time/<%=params[:id]%>">show unaudited</a>
+        <% else %>
+          <a href="/time/<%=params[:id]%>?all=true">show all</a>
+        <% end %>
       <% end %>
     </h1>
     <template v-for="employee in employees" track-by="id" data-entry-id="{{employee.id}}">
