@@ -17,7 +17,7 @@
     <h1 style="font-size:22px; padding:10px;">
       <% if @current_week %>
         <% @current_week.each do |k,v| %>
-          <span style="margin-right:10px;"><span style="color:#666"><%= k %>: </span><%= v %></span>
+          <span style="margin-right:10px;"><span style="color:#666"><%= k %>: </span>{{<%="currentWeek.#{k}"%>}}</span>
         <% end %>
         <% if params.key?(:all) %>
           <a href="/time/<%=params[:id]%>">show unaudited</a>
@@ -26,123 +26,153 @@
         <% end %>
       <% end %>
     </h1>
-    <template v-for="employee in employees" track-by="id" data-entry-id="{{employee.id}}">
-      <div style="font-size:12px; font-weight:bold;">
-        <span style="color:#777">{{employee.employee_id}}</span> {{employee.name}}
-        <a href="#" @click.prevent="addEntry(employee)" style="color:green; font-weight:bold;">+</a>
-      </div>
-      <table class="table table-striped table-sm">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>
-              <a href="#" @click.prevent="clearTime(employee,'start_time')" style="color:black; font-weight:bold;">In</a>
-              /
-              <a href="#" @click.prevent="clearTime(employee,'end_time')" style="color:black; font-weight:bold;">Out</a></th>
-            <th>Lunch
-              <a href="#" @click.prevent="clearTime(employee,'meal_start_time')" style="color:black; font-weight:bold;">In</a>
-              /
-              <a href="#" @click.prevent="clearTime(employee,'meal_end_time')" style="color:black; font-weight:bold;">Out</a></th>
-            <th></th>
-            <th>Rate</th>
-            <th>Pieces</th>
-            <th>Hours</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="entry in employee.entries" track-by="id" data-entry-id="{{entry.id}}">
-            <td>
-              <span v-if="entry.in_agpay">{{entry.day}}</span>
-              <input v-else v-model="entry.day" @keyup.enter="saveEntry(entry)" placeholder="yyyy-mm-dd">
-            </td>
-            <td>
-              <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)"  @change="copyTimes(employee,$index)" @focus="focusEntry(employee,$index)" placeholder="in" style="width:49%">
-              <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
-            </td>
-            <td>
-              <input v-model="entry.meal_start_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="in" style="width:49%">
-              <input v-model="entry.meal_end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
-            </td>
-            <td>
-              <button v-on:click="saveEntry(entry)" class="btn btn-sm btn-primary-outline">Update</button>
-              <button v-if="!entry.in_agpay" v-on:click="deleteEntry(employee, $index)" class="btn btn-sm btn-danger-outline">Del</button>
-            </td>
-            <td>
-              <span v-if="entry.in_agpay">{{entry.rate}}</span>
-              <input v-else v-model="entry.rate" @keyup.enter="saveEntry(entry)" placeholder="" size="2">
-            </td>
-            <td>
-              <span v-if="entry.in_agpay">{{entry.pieces}}</span>
-              <input v-else v-model="entry.pieces" @keyup.enter="saveEntry(entry)" placeholder="" size="3">
-            </td>
-            <td nowrap>
-              <div v-if="entry.in_agpay">
-                <small class="text-no-wrap" style="display:block">
-                  pr {{entry.hours}}
-                </small>
-                <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.hours != entry.timecard_hours) }" style="display:block">
-                  tc {{entry.timecard_hours}}
-                </small>
+    <table class="table table-sm" style="table-layout: fixed;">
+      <tbody>
+        <tr>
+          <td style="width:24%" valign="top">
+            <input v-model="idSearch" type="text" placeholder="ID" debounce="200" style="width:25%"/>
+            <input v-model="nameSearch" type="text" placeholder="Name" debounce="200" style="width:70%"/>
+            <select v-model="selectedIndex" multiple size="15" style="width:98%">
+              <option v-for="employee in filteredEmployees" v-bind:value="$index" track-by="id">
+                {{ employee.id }} - {{ employee.name }}
+              </option>
+            </select>
+          </td>
+          <td valign="top">
+            <template v-for="employee in selectedEmployees" track-by="id" data-entry-id="{{employee.id}}">
+              <div style="font-size:12px; font-weight:bold;">
+                <span style="color:#777">{{employee.id}}</span> {{employee.name}}
+                <a href="#" @click.prevent="addEntry(employee)" style="color:green; font-weight:bold;">+</a>
               </div>
-              <input v-else v-model="entry.hours" @keyup.enter="saveEntry(entry)" placeholder="hours" size="3">
-            </td>
-            <td nowrap>
-              <div v-if="entry.in_agpay">
-                <small class="text-no-wrap" style="display:block">
-                  pr {{entry.amount}}
-                </small>
-                <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.amount != entry.timecard_amount) }" style="display:block">
-                  tc {{entry.timecard_amount}}
-                </small>
-              </div>
-              <input v-else v-model="entry.amount" @keyup.enter="saveEntry(entry)" placeholder="amount" size="3">
-            </td>
-            <td><input type="checkbox" v-model="entry.audited" v-bind:true-value="true"
-    v-bind:false-value="false" v-on:click="saveEntryDelay(entry)"></td>
-          </tr>
-        </tbody>
-      </table>
-    </template>
+              <table class="table table-striped table-sm">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>
+                      <a href="#" @click.prevent="clearTime(employee,'start_time')" style="color:black; font-weight:bold;">In</a>
+                      /
+                      <a href="#" @click.prevent="clearTime(employee,'end_time')" style="color:black; font-weight:bold;">Out</a></th>
+                    <th>Lunch
+                      <a href="#" @click.prevent="clearTime(employee,'meal_start_time')" style="color:black; font-weight:bold;">In</a>
+                      /
+                      <a href="#" @click.prevent="clearTime(employee,'meal_end_time')" style="color:black; font-weight:bold;">Out</a></th>
+                    <th></th>
+                    <th>Rate</th>
+                    <th>Pieces</th>
+                    <th>Hours</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="entry in employee.entries" track-by="id" data-entry-id="{{entry.id}}" v-bind:class="{ 'text-warning': entry.saving }">
+                    <td nowrap>
+                      <span v-if="entry.in_agpay">{{entry.day}}</span>
+                      <input v-else v-model="entry.day" @keyup.enter="saveEntry(entry)" placeholder="yyyy-mm-dd">
+                    </td>
+                    <td>
+                      <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)"  @change="copyTimes(employee,$index)" @focus="focusEntry(employee,$index)" placeholder="in" style="width:49%">
+                      <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
+                    </td>
+                    <td>
+                      <input v-model="entry.meal_start_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="in" style="width:49%">
+                      <input v-model="entry.meal_end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
+                    </td>
+                    <td>
+                      <button v-on:click="saveEntry(entry)" class="btn btn-sm btn-primary-outline">Update</button>
+                      <button v-if="!entry.in_agpay" v-on:click="deleteEntry(employee, $index)" class="btn btn-sm btn-danger-outline">Del</button>
+                    </td>
+                    <td>
+                      <span v-if="entry.in_agpay">{{entry.rate}}</span>
+                      <input v-else v-model="entry.rate" @keyup.enter="saveEntry(entry)" placeholder="" size="2">
+                    </td>
+                    <td>
+                      <span v-if="entry.in_agpay">{{entry.pieces}}</span>
+                      <input v-else v-model="entry.pieces" @keyup.enter="saveEntry(entry)" placeholder="" size="3">
+                    </td>
+                    <td nowrap>
+                      <div v-if="entry.in_agpay">
+                        <small class="text-no-wrap" style="display:block">
+                          pr {{entry.hours}}
+                        </small>
+                        <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.hours != entry.timecard_hours) }" style="display:block">
+                          tc {{entry.timecard_hours}}
+                        </small>
+                      </div>
+                      <input v-else v-model="entry.hours" @keyup.enter="saveEntry(entry)" placeholder="hours" size="3">
+                    </td>
+                    <td nowrap>
+                      <div v-if="entry.in_agpay">
+                        <small class="text-no-wrap" style="display:block">
+                          pr {{entry.amount}}
+                        </small>
+                        <small class="text-no-wrap" v-bind:class="{ 'text-warning': (entry.amount != entry.timecard_amount) }" style="display:block">
+                          tc {{entry.timecard_amount}}
+                        </small>
+                      </div>
+                      <input v-else v-model="entry.amount" @keyup.enter="saveEntry(entry)" placeholder="amount" size="3">
+                    </td>
+                    <td><input type="checkbox" v-model="entry.audited" v-bind:true-value="true"
+            v-bind:false-value="false" v-on:click="saveEntryDelay(entry)"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </template>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
   </div>
 </div>
 
 <script language="javascript">
+var refreshTimer;
+var filteredEmployeesCache = [];
 var tedit = new Vue({
   el: '#tedit',
   data: {
     weeks: <%= @weeks.to_json.html_safe %>,
     employees:  <%= @employees.html_safe %>,
+    currentWeek: <%= @current_week.to_json.html_safe %>,
     showAll: false,
     nameSearch: "",
-    idSearch: ""
+    idSearch: "",
+    selectedIndex: null
   },
-  // computed: {
-  //   filteredEmployees: function() {
-  //     var nameSearch='',idSearch='';
-  //     if (this.showAll) { return this.employees; }
-  //     if (this.nameSearch && this.nameSearch.length>0) { nameSearch = this.nameSearch.trim().toUpperCase(); }
-  //     if (this.idSearch && this.idSearch.length>0) { idSearch = this.idSearch.trim().toUpperCase(); }
-  //     nameSearch = nameSearch.length>0 ? nameSearch : false;
-  //     idSearch = idSearch.length>0 ? idSearch : false;
-  //     console.log(nameSearch, idSearch);
-  //     wtf = this.employees.filter(function(e){
-  //       if (nameSearch && e.name.indexOf(nameSearch)>=0) {
-  //         return e;
-  //       }
-  //       if (idSearch && e.employee_id.indexOf(idSearch)>=0) {
-  //         return e;
-  //       }
-  //       if (nameSearch || idSearch) { return; }
-  //       if (e.audited === true) { return; }
-  //       return e;
-  //     });
-  //     console.log(wtf);
-  //     return wtf;
-  //
-  //   }
-  // },
+  computed: {
+    filteredEmployees: function() {
+       var nameSearch='',idSearch='';
+      // if (this.showAll) { return this.employees; }
+      if (this.nameSearch && this.nameSearch.length>0) { nameSearch = this.nameSearch.trim().toUpperCase(); }
+      if (this.idSearch && this.idSearch.length>0) { idSearch = this.idSearch.trim().toUpperCase(); }
+      nameSearch = nameSearch.length>0 ? nameSearch : false;
+      idSearch = idSearch.length>0 ? idSearch : false;
+      if (nameSearch === false && idSearch === false) {
+        window.filteredEmployeesCache = this.employees;
+        return window.filteredEmployeesCache;
+      }
+      console.log('filtering',nameSearch, idSearch);
+      window.filteredEmployeesCache = this.employees.filter(function(e){
+        if (nameSearch && e.name.indexOf(nameSearch)>=0) {
+          return e;
+        }
+        if (idSearch && e.id.indexOf(idSearch)>=0) {
+          return e;
+        }
+      });
+      return window.filteredEmployeesCache;
+    },
+    selectedEmployees: function() {
+      if (!this.selectedIndex || this.selectedIndex.length<1) {
+        return this.selectedIndex;
+      }
+      var vm = this;
+      var selected = vm.selectedIndex.map(function(idx){
+        return window.filteredEmployeesCache[idx];
+      });
+      return selected;
+    }
+  },
   methods: {
     copyTimes: function(employee, $index) {
       var copyFields = ['start_time', 'end_time', 'meal_start_time', 'meal_end_time'],
@@ -180,7 +210,9 @@ var tedit = new Vue({
       });
     },
     saveEntry: function(e) {
+      var vm = this;
       window.lastEmployee = e;
+      Vue.set(e, 'saving', true);
       fetch('/time/'+e.id, {
         credentials: 'same-origin',
         method: 'PUT',
@@ -193,7 +225,13 @@ var tedit = new Vue({
         return r.json();
       }).then(function(json) {
         Object.assign(e, json);
+        e.saving = null;
+        window.refreshTimer = setTimeout(function(){
+          vm.refreshWeek(e.weeknum);
+        },400);
       });
+      clearTimeout(window.refreshTimer);
+
     },
     saveEntryDelay: function(e) {
       var self = this;
@@ -219,6 +257,23 @@ var tedit = new Vue({
         employee.entries.splice(index, 1);
         return;
       });
+    },
+    refreshWeek: function(weekNum) {
+      var vm = this;
+      fetch('/time/'+weekNum, {
+        credentials: 'same-origin',
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }).then(function(r){
+        return r.json();
+      }).then(function(json) {
+        vm.currentWeek = json.currentWeek;
+        vm.weeks = json.weeks;
+      });
+
     }
   }
 
