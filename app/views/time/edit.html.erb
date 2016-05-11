@@ -2,35 +2,28 @@
   <div class="col-xs-3 col-md-2 sidebar" style="padding-top:5px;">
     <ul class="nav nav-sidebar">
       <li style="font-size:11px; text-transform:uppercase; font-weight:bold; color:#777; padding-left:5px;">Week</li>
-      <li v-for="week in weeks" style="font-size:11px;">
-        <a href="/time/{{ week.weeknum  }}?year=<%= params[:year] %>" style="display:block; position:relative;">{{ week.weeknum }}
-          <small style="position:absolute; top:0px; right:5px; color:#666;">{{week.count}}</small>
-        </a>
-      </li>
+      <% @weeks.each do |week| %>
+        <li style="font-size:11px;">
+          <a href="/time/<%=  week["weeknum"] %>" style="display:block; position:relative;"><%=  week["weeknum"] %>
+            <small style="position:absolute; top:0px; right:5px; color:#666;"><%= week["count"] %></small>
+          </a>
+        </li>
+      <% end %>
     </ul>
   </div>
   <div class="col-xs-9 col-md-10 main" style="width:100%;">
-    <div v-if="alertMsg" class="alert alert-{{alertMsg.type}} fade in" id="flashmsgs" style="position:absolute;top:0px;right:0px;z-index:99999; padding:10px; min-height:52px;">
-      <div class="text-center">{{alertMsg.msg}}</div>
+    <div id="flashmsgs" style="position:absolute;top:0px;right:0px;z-index:99999; padding:10px; min-height:52px;" class="hide">
     </div>
 
-    <h1 style="font-size:18px; padding:10px;">
+    <h1 style="font-size:22px; padding:10px;">
       <% if @current_week %>
-        <% ["2013", "2014"].each do |year| %>
-          <% if year == params[:year] %>
-            <span style="margin-right:5px;"><a style="<%= "font-size:12px; padding:5px 8px; background-color:green; color:#fff;" %>" href="/time/<%=params[:id]%>?year=<%= year %>"><%= year %></a></span>
-          <% else %>
-            <span style="margin-right:5px;"><a style="<%= "font-size:12px; padding:5px 8px; color:#ddd;" %>" href="/time/<%=params[:id]%>?year=<%= year %>"><%= year %></a></span>
-          <% end %>
-        <% end %>
-
         <% @current_week.each do |k,v| %>
-          <span style="margin-right:10px;"><span style="color:#666"><%= k %>: </span>{{<%="currentWeek.#{k}"%>}}</span>
+          <span style="margin-right:10px;"><span style="color:#666"><%= k %>: </span><span><%=v%></span></span>
         <% end %>
         <% if params.key?(:all) %>
-          <a href="/time/<%=params[:id]%>?year=<%=params[:year]%>">show unaudited</a>
+          <a href="/time/<%=params[:id]%>">show unaudited</a>
         <% else %>
-          <a href="/time/<%=params[:id]%>?all=true&year=<%=params[:year]%>">show all</a>
+          <a href="/time/<%=params[:id]%>?all=true">show all</a>
         <% end %>
       <% end %>
     </h1>
@@ -38,18 +31,18 @@
       <tbody>
         <tr>
           <td style="width:24%" valign="top">
-            <input v-model="idSearch" type="text" placeholder="ID" debounce="200" style="width:25%"/>
-            <input v-model="nameSearch" type="text" placeholder="Name" debounce="200" style="width:70%"/>
-            <select v-model="selectedIndex" multiple size="15" style="width:98%">
-              <option v-for="employee in filteredEmployees" v-bind:value="$index" track-by="id">
-                {{ employee.id }} - {{ employee.name }}
-              </option>
+            <input id="nameSearch" type="text" placeholder="ID or Name" style="width:98%"/>
+            <select id="selectedNames" multiple size="15" style="width:98%">
+              <%= @employees.each_with_index do |employee,idx| %>
+                <option value="<%= idx %>"><%= employee["id"] %> - <%= employee["name"] %></option>
+              <% end %>
             </select>
           </td>
           <td valign="top">
-            <template v-for="employee in selectedEmployees" track-by="id" data-entry-id="{{employee.id}}">
+            <% @employees.each_with_index do |employee,idx| %>
+            <div id="employee_<%= idx %>" style="display:none">
               <div style="font-size:12px; font-weight:bold;">
-                <span style="color:#777">{{employee.id}}</span> {{employee.name}}
+                <span style="color:#777"><%= employee["id"] %></span> <%= employee["name"] %>
                 <a href="#" @click.prevent="addEntry(employee)" style="color:green; font-weight:bold;">+</a>
               </div>
               <table class="table table-striped table-sm">
@@ -57,13 +50,13 @@
                   <tr>
                     <th>Date</th>
                     <th>
-                      <a href="#" @click.prevent="clearTime(employee,'start_time')" style="color:black; font-weight:bold;">In</a>
+                      <a href="#" data-click-clear="start_time" style="color:black; font-weight:bold;">In</a>
                       /
-                      <a href="#" @click.prevent="clearTime(employee,'end_time')" style="color:black; font-weight:bold;">Out</a></th>
+                      <a href="#" data-click-clear="end_time" style="color:black; font-weight:bold;">Out</a></th>
                     <th>Lunch
-                      <a href="#" @click.prevent="clearTime(employee,'meal_start_time')" style="color:black; font-weight:bold;">In</a>
+                      <a href="#" data-click-clear="meal_start_time" style="color:black; font-weight:bold;">In</a>
                       /
-                      <a href="#" @click.prevent="clearTime(employee,'meal_end_time')" style="color:black; font-weight:bold;">Out</a></th>
+                      <a href="#" data-click-clear="meal_end_time" style="color:black; font-weight:bold;">Out</a></th>
                     <th></th>
                     <th>Rate</th>
                     <th>Pieces</th>
@@ -72,31 +65,24 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="entry in employee.entries" track-by="id" data-entry-id="{{entry.id}}" v-bind:class="{ 'text-warning': entry.saving }">
+                  <% employee["entries"].to_a.each do |entry| %>
+                  <tr data-entry-id="<%= entry["id"] %>">
                     <td nowrap>
-                      <span v-if="entry.in_agpay">{{entry.day}}</span>
                       <input v-else v-model="entry.day" @keyup.enter="saveEntry(entry)" placeholder="yyyy-mm-dd">
                     </td>
                     <td>
-                      <input v-model="entry.start_time" type="time" @keyup.enter="saveEntry(entry)"  @change="copyTimes(employee,$index)" @focus="focusEntry(employee,$index)" placeholder="in" size="5">
-                      <input v-model="entry.end_time" type="time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" size="5">
+                      <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)"  @change="copyTimes(employee,$index)" @focus="focusEntry(employee,$index)" placeholder="in" style="width:49%">
+                      <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
                     </td>
                     <td>
-                      <input v-model="entry.meal_start_time" type="time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="in">
-                      <input v-model="entry.meal_end_time" type="time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out">
+                      <input v-model="entry.meal_start_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="in" style="width:49%">
+                      <input v-model="entry.meal_end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
                     </td>
                     <td>
                       <button v-on:click="saveEntry(entry)" class="btn btn-sm btn-primary-outline">Update</button>
-                      <button v-if="!entry.in_agpay" v-on:click="deleteEntry(employee, $index)" class="btn btn-sm btn-danger-outline">Del</button>
                     </td>
-                    <td>
-                      <span v-if="entry.in_agpay">{{entry.rate}}</span>
-                      <input v-else v-model="entry.rate" @keyup.enter="saveEntry(entry)" placeholder="" size="2">
-                    </td>
-                    <td>
-                      <span v-if="entry.in_agpay">{{entry.pieces}}</span>
-                      <input v-else v-model="entry.pieces" @keyup.enter="saveEntry(entry)" placeholder="" size="3">
-                    </td>
+                    <td>{{entry.rate}}</td>
+                    <td>{{entry.pieces}}</td>
                     <td nowrap>
                       <div v-if="entry.in_agpay">
                         <small class="text-no-wrap" style="display:block">
@@ -106,7 +92,6 @@
                           tc {{entry.timecard_hours}}
                         </small>
                       </div>
-                      <input v-else v-model="entry.hours" @keyup.enter="saveEntry(entry)" placeholder="hours" size="3">
                     </td>
                     <td nowrap>
                       <div v-if="entry.in_agpay">
@@ -117,14 +102,15 @@
                           tc {{entry.timecard_amount}}
                         </small>
                       </div>
-                      <input v-else v-model="entry.amount" @keyup.enter="saveEntry(entry)" placeholder="amount" size="3">
                     </td>
                     <td><input type="checkbox" v-model="entry.audited" v-bind:true-value="true"
             v-bind:false-value="false" v-on:click="saveEntryDelay(entry)"></td>
                   </tr>
+                  <% end %>
                 </tbody>
               </table>
-            </template>
+            </div>
+            <% end %>
           </td>
         </tr>
       </tbody>
@@ -132,158 +118,42 @@
 
   </div>
 </div>
-
 <script language="javascript">
-var refreshTimer;
-var filteredEmployeesCache = [];
-var tedit = new Vue({
-  el: '#tedit',
-  data: {
-    weeks: <%= @weeks.to_json.html_safe %>,
-    employees:  <%= @employees.html_safe %>,
-    currentWeek: <%= @current_week.to_json.html_safe %>,
-    showAll: false,
-    nameSearch: "",
-    idSearch: "",
-    selectedIndex: null
-  },
-  computed: {
-    filteredEmployees: function() {
-       var nameSearch='',idSearch='';
-      // if (this.showAll) { return this.employees; }
-      if (this.nameSearch && this.nameSearch.length>0) { nameSearch = this.nameSearch.trim().toUpperCase(); }
-      if (this.idSearch && this.idSearch.length>0) { idSearch = this.idSearch.trim().toUpperCase(); }
-      nameSearch = nameSearch.length>0 ? nameSearch : false;
-      idSearch = idSearch.length>0 ? idSearch : false;
-      if (nameSearch === false && idSearch === false) {
-        window.filteredEmployeesCache = this.employees;
-        return window.filteredEmployeesCache;
-      }
-      console.log('filtering',nameSearch, idSearch);
-      window.filteredEmployeesCache = this.employees.filter(function(e){
-        if (nameSearch && e.name.indexOf(nameSearch)>=0) {
-          return e;
-        }
-        if (idSearch && e.id.indexOf(idSearch)>=0) {
-          return e;
-        }
-      });
-      return window.filteredEmployeesCache;
-    },
-    selectedEmployees: function() {
-      if (!this.selectedIndex || this.selectedIndex.length<1) {
-        return this.selectedIndex;
-      }
-      var vm = this;
-      var selected = vm.selectedIndex.map(function(idx){
-        return window.filteredEmployeesCache[idx];
-      });
-      return selected;
-    }
-  },
-  methods: {
-    copyTimes: function(employee, $index) {
-      var copyFields = ['start_time', 'end_time', 'meal_start_time', 'meal_end_time'],
-          src = employee.entries[$index],
-          vm = this;
-      employee.entries.forEach(function(entry, index){
-        if (entry.audited === true) { return; }
-        if (index <= $index) { return; }
-        if (entry.hours <= 5) { return; }
-        var updated = false;
-        copyFields.forEach(function(field){
-          if (entry[field]!=null && entry[field].indexOf(':')>0) { return; }
-          if (src[field]!=null && src[field].indexOf(':')>0) {
-            updated = true;
-            entry[field] = src[field]
+  var timeEdit = (function ($) {
+    function timeEdit(id) {
+      var self=this,selTimer=null;
+      this.$el = $(document.getElementById(id));
+      this.selectedNames = document.getElementById('selectedNames');
+      this.$el.on('change keyup', '#nameSearch, #idSearch',function(e){
+        clearTimeout(selTimer);
+        selTimer = setTimeout(function(){
+          setTimeout(function(){$('#selectedNames').trigger('change');},100);
+          var name = $('#nameSearch').val().toUpperCase();
+          if (name=='') {
+            return($(self.selectedNames.options).show());
           }
-        });
-        if (updated === true) { vm.saveEntry(entry); }
+          for (var i=0,iLen=self.selectedNames.length;i<iLen;i++) {
+            var opt = self.selectedNames.options[i];
+            if (name&&opt.text.indexOf(name)>=0) {
+              $(opt).show();
+            } else {
+              $(opt).hide();
+            }
+          }
+        },50);
       });
-    },
-    focusEntry: function(employee, $index) {
-      if (!window.lastEmployee) { return; }
-      var copyFields = ['start_time', 'end_time', 'meal_start_time', 'meal_end_time'],
-          src = window.lastEmployee,
-          dest = employee.entries[$index];
-      copyFields.forEach(function(field){
-        if ((!dest[field] || dest[field].length<1) && (src[field] && src[field].length>0)) {
-          dest[field] = src[field];
-        }
+      this.$el.on('change', '#selectedNames',function(e){
+        console.log('selectedNames',$(this).val());
       });
-    },
-    clearTime: function(employee, col) {
-      employee.entries.forEach(function(entry){
-        entry[col] = '';
-      });
-    },
-    saveEntry: function(e) {
-      var vm = this;
-      window.lastEmployee = e;
-      Vue.set(e, 'saving', true);
-      fetch('/time/'+e.id, {
-        credentials: 'same-origin',
-        method: 'PUT',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(e)
-      }).then(function(r){
-        return r.json();
-      }).then(function(json) {
-        Object.assign(e, json);
-        e.saving = null;
-        window.refreshTimer = setTimeout(function(){
-          vm.refreshWeek(e.weeknum);
-        },400);
-      });
-      clearTimeout(window.refreshTimer);
 
-    },
-    saveEntryDelay: function(e) {
-      var self = this;
-      window.setTimeout(function(){
-        self.saveEntry(e);
-      },5);
-      return true;
-    },
-    addEntry: function(employee){
-      var entry = {};
-      if (employee.entries.length>0) {
-        Object.assign(entry, employee.entries[employee.entries.length-1]);
+
+      return {
+        selectedNames: selectedNames
       }
-      entry.id = "new"+entry.id; entry.audited = false; entry.in_agpay = false;
-      employee.entries.push(entry);
-    },
-    deleteEntry: function(employee, index){
-      var entry = employee.entries[index];
-      fetch('/time/'+entry.id, {
-        credentials: 'same-origin',
-        method: 'DELETE'
-      }).then(function(r){
-        employee.entries.splice(index, 1);
-        return;
-      });
-    },
-    refreshWeek: function(weekNum) {
-      var vm = this;
-      fetch('/time/'+weekNum, {
-        credentials: 'same-origin',
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      }).then(function(r){
-        return r.json();
-      }).then(function(json) {
-        vm.currentWeek = json.currentWeek;
-        vm.weeks = json.weeks;
-      });
 
     }
-  }
+    return timeEdit;
+  })(jQuery);
 
-});
+  window.te = timeEdit('tedit');
 </script>
