@@ -10,16 +10,12 @@ class TimeController < ApplicationController
   def edit
     # 2013: 2012-12-31  2013-12-29
     # 2014: 2013-12-30  2014-12-28
-    if !params.key?(:year)
-      params[:year] = session[:year]
-    end
     if params[:year] == "2013"
       @year_filter_sql = "day >= '2012-12-31' and day <= '2013-12-29'"
     else
       params[:year] = "2014"
       @year_filter_sql = "day >= '2013-12-30' and day <= '2014-12-28'"
     end
-    session[:year] = params[:year]
     @weeks = ::TimeEntry.connection.select_all("select weeknum,min(day) as start_day,max(day) as end_day,count(*) FILTER (WHERE audited=false) from time_entries where #{@year_filter_sql} group by weeknum order by weeknum;")
     if params[:id] && params[:id].to_i > 0
       if request.format != "application/json"
