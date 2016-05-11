@@ -22,7 +22,7 @@ class TimeController < ApplicationController
         if params.key?(:all)
           @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id as id,max(name) as name,bool_and(audited) as audited,array_agg(time_entries order by day) as entries from time_entries where weeknum=#{params[:id].to_i} and #{@year_filter_sql} group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
         else
-          @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id as id,max(name) as name,bool_and(audited) as audited,ARRAY(select subq from time_entries subq where subq.weeknum=#{params[:id].to_i} and subq.employee_id = time_entries.employee_id order by subq.day) as entries from time_entries where weeknum=#{params[:id].to_i} and #{@year_filter_sql} and audited=false group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
+          @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id as id,max(name) as name,bool_and(audited) as audited,ARRAY(select subq from time_entries subq where subq.weeknum=#{params[:id].to_i} and subq.employee_id = time_entries.employee_id and #{@year_filter_sql} order by subq.day) as entries from time_entries where weeknum=#{params[:id].to_i} and #{@year_filter_sql} and audited=false group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
         end
       end
       @current_week = @weeks[params[:id].to_i-1]
