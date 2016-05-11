@@ -14,15 +14,23 @@
       <div class="text-center">{{alertMsg.msg}}</div>
     </div>
 
-    <h1 style="font-size:22px; padding:10px;">
+    <h1 style="font-size:18px; padding:10px;">
       <% if @current_week %>
+        <% ["2013", "2014"].each do |year| %>
+          <% if year == params[:year] %>
+            <span style="margin-right:5px;"><a style="<%= "font-size:12px; padding:5px 8px; background-color:green; color:#fff;" %>" href="/time/<%=params[:id]%>?year=<%= year %>"><%= year %></a></span>
+          <% else %>
+            <span style="margin-right:5px;"><a style="<%= "font-size:12px; padding:5px 8px; color:#ddd;" %>" href="/time/<%=params[:id]%>?year=<%= year %>"><%= year %></a></span>
+          <% end %>
+        <% end %>
+
         <% @current_week.each do |k,v| %>
           <span style="margin-right:10px;"><span style="color:#666"><%= k %>: </span>{{<%="currentWeek.#{k}"%>}}</span>
         <% end %>
         <% if params.key?(:all) %>
-          <a href="/time/<%=params[:id]%>">show unaudited</a>
+          <a href="/time/<%=params[:id]%>?year=<%=params[:year]%>">show unaudited</a>
         <% else %>
-          <a href="/time/<%=params[:id]%>?all=true">show all</a>
+          <a href="/time/<%=params[:id]%>?all=true&year=<%=params[:year]%>">show all</a>
         <% end %>
       <% end %>
     </h1>

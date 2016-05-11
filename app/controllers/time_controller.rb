@@ -8,13 +8,21 @@ class TimeController < ApplicationController
   end
 
   def edit
-    @weeks = ::TimeEntry.connection.select_all("select weeknum,min(day) as start_day,max(day) as end_day,count(*) FILTER (WHERE audited=false) from time_entries where day <'2014-12-29' group by weeknum order by weeknum;")
+    # 2013: 2012-12-31  2013-12-29
+    # 2014: 2013-12-30  2014-12-28
+    if params[:year] == "2013"
+      @year_filter_sql = "day >= '2012-12-31' and day <= '2013-12-29'"
+    else
+      params[:year] = "2014"
+      @year_filter_sql = "day >= '2013-12-30' and day <= '2014-12-28'"
+    end
+    @weeks = ::TimeEntry.connection.select_all("select weeknum,min(day) as start_day,max(day) as end_day,count(*) FILTER (WHERE audited=false) from time_entries where #{@year_filter_sql} group by weeknum order by weeknum;")
     if params[:id] && params[:id].to_i > 0
       if request.format != "application/json"
         if params.key?(:all)
-          @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id as id,max(name) as name,bool_and(audited) as audited,array_agg(time_entries order by day) as entries from time_entries where weeknum=#{params[:id].to_i} and day <'2014-12-29' group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
+          @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id as id,max(name) as name,bool_and(audited) as audited,array_agg(time_entries order by day) as entries from time_entries where weeknum=#{params[:id].to_i} and #{@year_filter_sql} group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
         else
-          @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id as id,max(name) as name,bool_and(audited) as audited,ARRAY(select subq from time_entries subq where subq.weeknum=#{params[:id].to_i} and subq.employee_id = time_entries.employee_id order by subq.day) as entries from time_entries where weeknum=#{params[:id].to_i} and day <'2014-12-29' and audited=false group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
+          @employees = "["+::TimeEntry.connection.select_rows("select to_json(r) from (select employee_id as id,max(name) as name,bool_and(audited) as audited,ARRAY(select subq from time_entries subq where subq.weeknum=#{params[:id].to_i} and subq.employee_id = time_entries.employee_id order by subq.day) as entries from time_entries where weeknum=#{params[:id].to_i} and #{@year_filter_sql} and audited=false group by employee_id order by max(name))r;").join(",").gsub(/\d{2}:\d{2}\K:\d{2}/, '')+"]"
         end
       end
       @current_week = @weeks[params[:id].to_i-1]
