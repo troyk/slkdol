@@ -268,7 +268,7 @@ var tedit = new Vue({
     },
     refreshWeek: function(weekNum) {
       var vm = this;
-      fetch('/time/'+weekNum, {
+      fetch('/time/'+weekNum+"?year=<%= params[:year] %>", {
         credentials: 'same-origin',
         method: 'GET',
         headers: {
