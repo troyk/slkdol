@@ -70,12 +70,12 @@
                       <input v-else v-model="entry.day" @keyup.enter="saveEntry(entry)" placeholder="yyyy-mm-dd">
                     </td>
                     <td>
-                      <input v-model="entry.start_time" @keyup.enter="saveEntry(entry)"  @change="copyTimes(employee,$index)" @focus="focusEntry(employee,$index)" placeholder="in" style="width:49%">
-                      <input v-model="entry.end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
+                      <input v-model="entry.start_time" type="time" @keyup.enter="saveEntry(entry)"  @change="copyTimes(employee,$index)" @focus="focusEntry(employee,$index)" placeholder="in" size="5">
+                      <input v-model="entry.end_time" type="time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" size="5">
                     </td>
                     <td>
-                      <input v-model="entry.meal_start_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="in" style="width:49%">
-                      <input v-model="entry.meal_end_time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out" style="width:49%">
+                      <input v-model="entry.meal_start_time" type="time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="in">
+                      <input v-model="entry.meal_end_time" type="time" @keyup.enter="saveEntry(entry)" @change="copyTimes(employee,$index)" placeholder="out">
                     </td>
                     <td>
                       <button v-on:click="saveEntry(entry)" class="btn btn-sm btn-primary-outline">Update</button>
