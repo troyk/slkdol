@@ -1,6 +1,9 @@
 <div class="row" id="tedit">
   <div class="col-xs-3 col-md-2 sidebar" style="padding-top:5px;">
     <ul class="nav nav-sidebar">
+      <li style="font-size:11px; text-transform:uppercase; font-weight:bold; color:#777; padding-left:5px;">
+        <a href="/paydates" style="padding:0px 0px;">Paydates</a>
+      </li>
       <li style="font-size:11px; text-transform:uppercase; font-weight:bold; color:#777; padding-left:5px;">Week</li>
       <li v-for="week in weeks" style="font-size:11px;">
         <a href="/time/{{ week.weeknum  }}?year=<%= params[:year] %>" style="display:block; position:relative;">{{ week.weeknum }}

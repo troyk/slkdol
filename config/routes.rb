@@ -14,6 +14,8 @@ Rails.application.routes.draw do
 
   # Example resource route (maps HTTP verbs to controller actions automatically):
   get 'time/paydate/:paydate' => 'time#show'
+  get 'paydates' => 'time#paydates'
+  post 'paydates' => 'time#paydates'
   resources :time
 
 

@@ -1,0 +1,13 @@
+<form style="font-size:11px;" method="POST" action="/paydates">
+  <% @dates.each do |yr, weeks| %>
+     <h4 style="margin-top:15px;"><%= yr %></h4>
+     <% weeks.each do |pd| %>
+         <label style="display:block; margin:10px 0px 0px; text-transform:uppercase;">Week <%= pd["weeknum"] %></label>
+         <input type="text" name="<%= "#{yr}[#{pd['weeknum']}]"=%>" value="<%= pd["pay_date"] %>"/>
+         <input type="hidden" name="<%= "#{yr}#{pd['weeknum']}"=%>" value="<%= pd["pay_date"] %>"/>
+     <% end %>
+  <% end %>
+  <div>
+    <input class="btn btn-success" type="submit" value="Update" style="margin-top:20px;"/>
+  </div>
+</form>
