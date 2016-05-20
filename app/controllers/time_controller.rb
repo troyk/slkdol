@@ -84,14 +84,24 @@ class TimeController < ApplicationController
 
   # paydate editing
   def paydates
-    if request.post?
-      PAY_YEARS.each do |yr,day_filter|
-        next unless params[yr].is_a?(Hash)
-         params[yr].each do |weeknum,day|
-           next if day.blank?
-           next if params["#{yr}#{weeknum}"] == day
-           ::TimeEntry.where(weeknum: weeknum).where(day_filter).update_all(pay_day: day)
-         end
+    # if request.post?
+    #   PAY_YEARS.each do |yr,day_filter|
+    #     next unless params[yr].is_a?(Hash)
+    #      params[yr].each do |weeknum,day|
+    #        next if day.blank?
+    #        next if params["#{yr}#{weeknum}"] == day
+    #        ::TimeEntry.where(weeknum: weeknum).where(day_filter).update_all(pay_day: day)
+    #      end
+    #   end
+    # end
+    PAY_YEARS.each do |yr,day_filter|
+      rows = TimeEntry.connection.select_all("select weeknum,max(day) from time_entries where pay_day is null and #{day_filter} and weeknum is not null group by weeknum").to_a
+      rows.each do |row|
+         TimeEntry.connection.execute <<-SQL
+           update time_entries set
+             pay_day = (select generate_series FROM generate_series('#{row["max"]}'::timestamp,'#{row["max"]}'::timestamp+'1 week','1 day'::interval) where EXTRACT(DOW FROM generate_series)=5 and EXTRACT(WEEK FROM '#{row["max"]}'::timestamp)<EXTRACT(WEEK FROM generate_series))
+           where weeknum=#{row["weeknum"]} and #{day_filter}
+         SQL
       end
     end
     @dates = Hash[PAY_YEARS.map{|yr,day_filter| [yr, ::TimeEntry.connection.select_all("select weeknum, min(pay_day) as pay_date from time_entries where #{day_filter} group by weeknum order by weeknum")] } ]
