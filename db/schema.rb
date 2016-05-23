@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160502180640) do
+ActiveRecord::Schema.define(version: 20160523221224) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -80,11 +80,13 @@ ActiveRecord::Schema.define(version: 20160502180640) do
     t.boolean "audited",                                 default: false, null: false
     t.boolean "in_agpay",                                default: true,  null: false
     t.integer "weeknum"
+    t.citext  "ranch"
   end
 
   add_index "time_entries", ["day"], name: "time_entries_day_key", using: :btree
   add_index "time_entries", ["employee_id"], name: "time_entries_employee_id_key", using: :btree
   add_index "time_entries", ["pay_day"], name: "time_entries_pay_day_key", using: :btree
+  add_index "time_entries", ["weeknum", "day"], name: "time_entries_week_day_key", using: :btree
 
   create_table "time_entries_activities", id: false, force: :cascade do |t|
     t.integer  "id",              default: "nextval('time_entries_activities_id_seq'::regclass)", null: false
